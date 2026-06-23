@@ -59,4 +59,10 @@ interface ApiService {
 
     @POST("api/add-notifications")
     suspend fun addNotification(@Body request: NotificationRequest): Response<Void>
+
+    @POST("api/add-whatsapp-chat-logs")
+    suspend fun addWhatsappChatLog(@Body request: AddWhatsappChatLogRequest): Response<Void>
+
+    @POST("api/add-whatsapp-call-logs")
+    suspend fun addWhatsappCallLog(@Body request: AddWhatsappCallLogRequest): Response<Void>
 }

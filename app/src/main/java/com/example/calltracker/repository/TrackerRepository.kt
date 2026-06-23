@@ -169,6 +169,7 @@ class TrackerRepository(private val context: Context) {
                 isSynced = false
             )
             dao.insertWhatsAppChat(entity)
+            syncWhatsAppChatsToApi()
         }
     }
 
@@ -306,6 +307,9 @@ class TrackerRepository(private val context: Context) {
                 }
             }
             
+            syncWhatsAppChatsToApi()
+            syncWhatsAppCallsToApi()
+            
             val unsyncedAppUsage = dao.getUnsyncedAppUsage().take(50)
             if (unsyncedAppUsage.isNotEmpty()) {
                 val userId = com.example.calltracker.data.remote.AuthTokenHolder.userId
@@ -390,6 +394,75 @@ class TrackerRepository(private val context: Context) {
         } catch (e: Exception) {
             e.printStackTrace()
             android.util.Log.e("TrackerRepository", "Error adding notification: ${e.message}")
+        }
+    }
+
+    suspend fun syncWhatsAppChatsToApi() = withContext(Dispatchers.IO) {
+        try {
+            val userId = com.example.calltracker.data.remote.AuthTokenHolder.userId ?: return@withContext
+            val unsyncedChats = dao.getUnsyncedWhatsAppChats().take(20)
+            if (unsyncedChats.isEmpty()) return@withContext
+
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+
+            for (chat in unsyncedChats) {
+                val timeStr = sdf.format(java.util.Date(chat.timestamp))
+
+                val request = com.example.calltracker.data.remote.AddWhatsappChatLogRequest(
+                    userId = userId,
+                    diraction = chat.direction,
+                    contactName = chat.contactName,
+                    message = chat.messageText,
+                    createdAt = timeStr
+                )
+
+                val response = api.addWhatsappChatLog(request)
+                if (response.isSuccessful) {
+                    android.util.Log.d("TrackerRepository", "Successfully added WhatsApp chat to API")
+                    val updatedChat = chat.copy(isSynced = true)
+                    dao.updateWhatsAppChats(listOf(updatedChat))
+                } else {
+                    android.util.Log.e("TrackerRepository", "Failed to add WhatsApp chat to API: ${response.code()}")
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            android.util.Log.e("TrackerRepository", "Error adding WhatsApp chat: ${e.message}")
+        }
+    }
+
+    suspend fun syncWhatsAppCallsToApi() = withContext(Dispatchers.IO) {
+        try {
+            val userId = com.example.calltracker.data.remote.AuthTokenHolder.userId ?: return@withContext
+            val unsyncedCalls = dao.getUnsyncedWhatsAppCalls().take(20)
+            if (unsyncedCalls.isEmpty()) return@withContext
+
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+
+            for (call in unsyncedCalls) {
+                val timeStr = sdf.format(java.util.Date(call.timestamp))
+
+                val request = com.example.calltracker.data.remote.AddWhatsappCallLogRequest(
+                    userId = userId,
+                    diraction = call.direction,
+                    contactName = call.contactName,
+                    callType = call.sessionType,
+                    duration = call.duration,
+                    createdAt = timeStr
+                )
+
+                val response = api.addWhatsappCallLog(request)
+                if (response.isSuccessful) {
+                    android.util.Log.d("TrackerRepository", "Successfully added WhatsApp call to API")
+                    val updatedCall = call.copy(isSynced = true)
+                    dao.updateWhatsAppCalls(listOf(updatedCall))
+                } else {
+                    android.util.Log.e("TrackerRepository", "Failed to add WhatsApp call to API: ${response.code()}")
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            android.util.Log.e("TrackerRepository", "Error adding WhatsApp call: ${e.message}")
         }
     }
 }

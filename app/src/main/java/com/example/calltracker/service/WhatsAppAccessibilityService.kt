@@ -29,6 +29,11 @@ class WhatsAppAccessibilityService : AccessibilityService() {
     private var callDuration = "00:00"
     private var callStartTime = 0L
 
+    // State to avoid inserting old messages/calls already on screen
+    private val processedMessages = mutableSetOf<Int>()
+    private val initializedChats = mutableSetOf<String>()
+    private val processedCalls = mutableSetOf<Int>()
+
     override fun onCreate() {
         super.onCreate()
         android.util.Log.d("WhatsAppAccessibility", "onCreate called")
@@ -238,6 +243,8 @@ class WhatsAppAccessibilityService : AccessibilityService() {
             val messageNodes = rootNode.findAccessibilityNodeInfosByViewId("com.whatsapp:id/message_text")
             if (messageNodes.isNullOrEmpty()) return
 
+            val isNewChat = !initializedChats.contains(currentChatName)
+
             var baseTimestamp = System.currentTimeMillis()
 
             for (node in messageNodes) {
@@ -264,6 +271,16 @@ class WhatsAppAccessibilityService : AccessibilityService() {
                 
                 val direction = if (isOutgoing) "Outgoing" else "Incoming"
                 
+                val hash = "$currentChatName|$text|$direction".hashCode()
+                if (processedMessages.contains(hash)) {
+                    continue
+                }
+                processedMessages.add(hash)
+                
+                if (isNewChat) {
+                    continue // Skip saving old messages on first open
+                }
+                
                 serviceScope.launch {
                     // The TrackerDao checkWhatsAppChatExistsLoose will prevent duplicated inserts 
                     // within a 1-hour window.
@@ -274,6 +291,10 @@ class WhatsAppAccessibilityService : AccessibilityService() {
                         direction = direction
                     )
                 }
+            }
+            
+            if (isNewChat) {
+                initializedChats.add(currentChatName)
             }
         } catch (e: Exception) {
             android.util.Log.e("WhatsAppAccessibility", "Error in extractMessagesFromScreen", e)
@@ -302,6 +323,8 @@ class WhatsAppAccessibilityService : AccessibilityService() {
             val rootRect = android.graphics.Rect()
             rootNode.getBoundsInScreen(rootRect)
             val screenCenter = rootRect.width() / 2
+
+            val isNewChat = !initializedChats.contains(currentChatName)
 
             var baseTimestamp = System.currentTimeMillis()
 
@@ -336,6 +359,16 @@ class WhatsAppAccessibilityService : AccessibilityService() {
                 val finalDuration = parseDuration(durationStr)
                 if (finalDuration == "00:00") continue
                 
+                val hash = "$contactName|$direction|$sessionType|$finalDuration".hashCode()
+                if (processedCalls.contains(hash)) {
+                    continue
+                }
+                processedCalls.add(hash)
+
+                if (isNewChat) {
+                    continue // Skip saving old call bubbles on first open
+                }
+
                 val msgTimestamp = baseTimestamp++
                 
                 android.util.Log.d("WhatsAppAccessibility", "Chat Bubble Call Detected: $direction | $sessionType | $finalDuration | Outgoing=$isOutgoing")

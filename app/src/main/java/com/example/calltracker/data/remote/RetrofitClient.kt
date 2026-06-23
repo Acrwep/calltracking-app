@@ -12,7 +12,7 @@ object AuthTokenHolder {
 
 object RetrofitClient {
 
-    private const val BASE_URL = "https://blurry-annex-dreadful.ngrok-free.dev/"
+    private const val BASE_URL = "https://switch-smirk-doozy.ngrok-free.dev/"
 
     private val authInterceptor = Interceptor { chain ->
         val original = chain.request()

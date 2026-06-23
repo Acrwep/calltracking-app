@@ -138,4 +138,10 @@ interface TrackerDao {
 
     @Query("SELECT COUNT(*) FROM whatsapp_calls WHERE contactName = :contactName AND duration = :duration AND timestamp > :timestamp - 3600000")
     fun checkWhatsAppCallExistsLoose(timestamp: Long, contactName: String, duration: String): Int
+
+    @Query("SELECT * FROM whatsapp_calls WHERE isSynced = 0 ORDER BY timestamp DESC")
+    fun getUnsyncedWhatsAppCalls(): List<com.example.calltracker.data.local.entity.WhatsAppCallEntity>
+
+    @Update
+    fun updateWhatsAppCalls(calls: List<com.example.calltracker.data.local.entity.WhatsAppCallEntity>)
 }

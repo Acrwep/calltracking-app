@@ -58,3 +58,21 @@ data class NotificationRequest(
     @SerializedName("text_content") val textContent: String?,
     @SerializedName("post_time") val postTime: String
 )
+
+data class AddWhatsappChatLogRequest(
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("diraction") val diraction: String,
+    @SerializedName("contact_name") val contactName: String?,
+    @SerializedName("message") val message: String?,
+    @SerializedName("created_at") val createdAt: String? = null
+)
+
+data class AddWhatsappCallLogRequest(
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("diraction") val diraction: String,
+    @SerializedName("contact_name") val contactName: String?,
+    @SerializedName("call_type") val callType: String?,
+    @SerializedName("duration") val duration: String?,
+    @SerializedName("created_at") val createdAt: String? = null
+)
+

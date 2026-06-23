@@ -33,14 +33,9 @@ class NotificationTrackerService : NotificationListenerService() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        try {
-            val activeNotifications = activeNotifications
-            activeNotifications?.forEach { sbn ->
-                processNotification(sbn)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        android.util.Log.d("NotificationTracker", "onListenerConnected called")
+        // We intentionally do not process activeNotifications here to avoid 
+        // inserting old notifications that were already present before the app started.
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
