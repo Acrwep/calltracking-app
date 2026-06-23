@@ -11,10 +11,13 @@ import com.example.calltracker.data.local.entity.RecordingEntity
 import com.example.calltracker.data.local.entity.SmsEntity
 import com.example.calltracker.data.local.entity.InstalledAppEntity
 import com.example.calltracker.data.local.entity.NotificationEntity
+import com.example.calltracker.data.local.entity.WhatsAppChatEntity
+
+import com.example.calltracker.data.local.entity.WhatsAppCallEntity
 
 @Database(
-    entities = [CallLogEntity::class, SmsEntity::class, AppUsageEntity::class, RecordingEntity::class, InstalledAppEntity::class, NotificationEntity::class],
-    version = 4,
+    entities = [CallLogEntity::class, SmsEntity::class, AppUsageEntity::class, RecordingEntity::class, InstalledAppEntity::class, NotificationEntity::class, WhatsAppChatEntity::class, WhatsAppCallEntity::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

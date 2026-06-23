@@ -14,12 +14,21 @@ import kotlinx.coroutines.launch
 class NotificationTrackerService : NotificationListenerService() {
 
     private val serviceJob = Job()
-    private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
+    private val exceptionHandler = kotlinx.coroutines.CoroutineExceptionHandler { _, throwable ->
+        android.util.Log.e("NotificationTracker", "Coroutine exception", throwable)
+    }
+    private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob + exceptionHandler)
     private lateinit var repository: TrackerRepository
 
     override fun onCreate() {
         super.onCreate()
+        android.util.Log.d("NotificationTracker", "onCreate called")
         repository = TrackerRepository(applicationContext)
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        android.util.Log.d("NotificationTracker", "onListenerDisconnected called")
     }
 
     override fun onListenerConnected() {
@@ -67,6 +76,43 @@ class NotificationTrackerService : NotificationListenerService() {
             }
         }
 
+        // WhatsApp Chat Monitoring
+        if (packageName == "com.whatsapp" || packageName == "com.whatsapp.w4b") {
+            val contactName = title ?: "Unknown"
+            
+            // Try to extract from MessagingStyle
+            val messages = extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+            if (messages != null && messages.isNotEmpty()) {
+                for (msg in messages) {
+                    val bundle = msg as? android.os.Bundle ?: continue
+                    val msgText = bundle.getCharSequence("text")?.toString() ?: continue
+                    val msgTimestamp = bundle.getLong("time", timestamp)
+                    
+                    val senderPerson = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                        bundle.getParcelable("sender_person") as? android.app.Person
+                    } else {
+                        @Suppress("DEPRECATION")
+                        bundle.getParcelable("sender_person") as? android.app.Person
+                    }
+                    val senderName = senderPerson?.name?.toString()
+                    
+                    // If senderPerson is null, it typically means it's the user's own sent message (Outgoing)
+                    val direction = if (senderPerson == null || senderName == null) "Outgoing" else "Incoming"
+                    
+                    serviceScope.launch {
+                        repository.insertWhatsAppChat(contactName, msgText, msgTimestamp, direction)
+                    }
+                }
+            } else {
+                // Fallback for non-MessagingStyle notifications
+                if (!text.isNullOrBlank() && !text.contains("new messages") && !text.contains("Checking for new messages")) {
+                    serviceScope.launch {
+                        repository.insertWhatsAppChat(contactName, text, timestamp, "Incoming")
+                    }
+                }
+            }
+        }
+
         // Specifically tracking WhatsApp and others
         val entity = NotificationEntity(
             packageName = packageName,
@@ -99,6 +145,7 @@ class NotificationTrackerService : NotificationListenerService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        android.util.Log.d("NotificationTracker", "onDestroy called")
         serviceJob.cancel()
     }
 }

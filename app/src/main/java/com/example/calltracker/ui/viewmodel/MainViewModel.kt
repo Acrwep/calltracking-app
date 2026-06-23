@@ -24,6 +24,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val allRecordings = repository.allRecordings
     val allInstalledApps = repository.allInstalledApps
     val allNotifications = repository.allNotifications
+    val allWhatsAppChats = repository.allWhatsAppChats
+    val allWhatsAppCalls = repository.allWhatsAppCalls
 
     // Notifications State
     val notificationSearchQuery = MutableStateFlow("")

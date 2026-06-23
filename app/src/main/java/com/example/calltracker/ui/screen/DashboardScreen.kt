@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -114,6 +115,19 @@ fun DashboardScreen(viewModel: MainViewModel = viewModel()) {
                         indicatorColor = ActivePill
                     )
                 )
+                NavigationBarItem(
+                    selected = selectedTab == "WhatsApp",
+                    onClick = { selectedTab = "WhatsApp" },
+                    icon = { Icon(Icons.Default.Chat, contentDescription = "WhatsApp") },
+                    label = { Text("WhatsApp") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = TextPrimary,
+                        unselectedIconColor = TextSecondary,
+                        selectedTextColor = TextPrimary,
+                        unselectedTextColor = TextSecondary,
+                        indicatorColor = ActivePill
+                    )
+                )
             }
         }
     ) { padding ->
@@ -139,6 +153,7 @@ fun DashboardScreen(viewModel: MainViewModel = viewModel()) {
                     "Recordings" -> RecordingsTab(viewModel)
                     "Apps" -> AppUsageTab(viewModel)
                     "Notifications" -> NotificationsTab(viewModel)
+                    "WhatsApp" -> WhatsAppTab(viewModel)
                 }
             }
         }

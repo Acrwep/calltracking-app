@@ -35,6 +35,8 @@ class TrackerRepository(private val context: Context) {
     val allRecordings = dao.getAllRecordings()
     val allInstalledApps = dao.getAllInstalledApps()
     val allNotifications = dao.getAllNotifications()
+    val allWhatsAppChats = dao.getAllWhatsAppChats()
+    val allWhatsAppCalls = dao.getAllWhatsAppCalls()
 
     init {
         // Clear all unsynced app usage when the repository is initialized (app re-run)
@@ -153,6 +155,36 @@ class TrackerRepository(private val context: Context) {
 
     suspend fun markNotificationAsRemoved(key: String) = withContext(Dispatchers.IO) {
         dao.markNotificationAsRemoved(key)
+    }
+
+    suspend fun insertWhatsAppChat(contactName: String, messageText: String, timestamp: Long, direction: String) = withContext(Dispatchers.IO) {
+        if (dao.checkWhatsAppChatExistsLoose(timestamp, contactName, messageText) == 0) {
+            val entity = com.example.calltracker.data.local.entity.WhatsAppChatEntity(
+                packageName = "com.whatsapp",
+                contactName = contactName,
+                messageText = messageText,
+                timestamp = timestamp,
+                direction = direction,
+                status = "Active",
+                isSynced = false
+            )
+            dao.insertWhatsAppChat(entity)
+        }
+    }
+
+    suspend fun insertWhatsAppCall(contactName: String, number: String, direction: String, sessionType: String, duration: String, timestamp: Long) = withContext(Dispatchers.IO) {
+        if (dao.checkWhatsAppCallExistsLoose(timestamp, contactName, duration) == 0) {
+            val entity = com.example.calltracker.data.local.entity.WhatsAppCallEntity(
+                contactName = contactName,
+                number = number,
+                direction = direction,
+                sessionType = sessionType,
+                duration = duration,
+                timestamp = timestamp,
+                isSynced = false
+            )
+            dao.insertWhatsAppCall(entity)
+        }
     }
 
     // Audio Recording

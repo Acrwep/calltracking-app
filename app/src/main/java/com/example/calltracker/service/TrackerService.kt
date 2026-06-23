@@ -138,7 +138,11 @@ class TrackerService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(phoneStateReceiver)
+        try {
+            unregisterReceiver(phoneStateReceiver)
+        } catch (e: IllegalArgumentException) {
+            android.util.Log.e("TrackerService", "Receiver not registered", e)
+        }
         screenshotManager?.stop()
         serviceJob.cancel()
     }

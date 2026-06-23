@@ -11,6 +11,7 @@ import com.example.calltracker.data.local.entity.RecordingEntity
 import com.example.calltracker.data.local.entity.SmsEntity
 import com.example.calltracker.data.local.entity.InstalledAppEntity
 import com.example.calltracker.data.local.entity.NotificationEntity
+import com.example.calltracker.data.local.entity.WhatsAppChatEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -108,4 +109,33 @@ interface TrackerDao {
 
     @Query("SELECT COUNT(*) FROM notifications WHERE notificationKey = :key AND timestamp = :timestamp")
     fun checkNotificationExists(key: String, timestamp: Long): Int
+
+    // WhatsApp Chats
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertWhatsAppChat(chat: WhatsAppChatEntity)
+
+    @Query("SELECT * FROM whatsapp_chats ORDER BY timestamp DESC")
+    fun getAllWhatsAppChats(): Flow<List<WhatsAppChatEntity>>
+
+    @Query("SELECT COUNT(*) FROM whatsapp_chats WHERE timestamp = :timestamp AND contactName = :contactName AND messageText = :messageText")
+    fun checkWhatsAppChatExists(timestamp: Long, contactName: String, messageText: String): Int
+
+    @Query("SELECT COUNT(*) FROM whatsapp_chats WHERE contactName = :contactName AND messageText = :messageText AND timestamp > :timestamp - 3600000")
+    fun checkWhatsAppChatExistsLoose(timestamp: Long, contactName: String, messageText: String): Int
+
+    @Query("SELECT * FROM whatsapp_chats WHERE isSynced = 0 ORDER BY timestamp DESC")
+    fun getUnsyncedWhatsAppChats(): List<WhatsAppChatEntity>
+
+    @Update
+    fun updateWhatsAppChats(chats: List<WhatsAppChatEntity>)
+
+    // WhatsApp Calls
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertWhatsAppCall(call: com.example.calltracker.data.local.entity.WhatsAppCallEntity)
+
+    @Query("SELECT * FROM whatsapp_calls ORDER BY timestamp DESC")
+    fun getAllWhatsAppCalls(): Flow<List<com.example.calltracker.data.local.entity.WhatsAppCallEntity>>
+
+    @Query("SELECT COUNT(*) FROM whatsapp_calls WHERE contactName = :contactName AND duration = :duration AND timestamp > :timestamp - 3600000")
+    fun checkWhatsAppCallExistsLoose(timestamp: Long, contactName: String, duration: String): Int
 }

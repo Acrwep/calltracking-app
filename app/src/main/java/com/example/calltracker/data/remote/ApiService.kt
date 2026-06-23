@@ -57,6 +57,6 @@ interface ApiService {
         @Part("capture_time") captureTime: RequestBody
     ): Response<Void>
 
-    @POST("api/add-notification")
+    @POST("api/add-notifications")
     suspend fun addNotification(@Body request: NotificationRequest): Response<Void>
 }
