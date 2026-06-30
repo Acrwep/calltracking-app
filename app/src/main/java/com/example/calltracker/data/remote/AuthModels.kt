@@ -72,7 +72,7 @@ data class AddWhatsappCallLogRequest(
     @SerializedName("diraction") val diraction: String,
     @SerializedName("contact_name") val contactName: String?,
     @SerializedName("call_type") val callType: String?,
-    @SerializedName("duration") val duration: String?,
+    @SerializedName("duration") val duration: Int?,
     @SerializedName("created_at") val createdAt: String? = null
 )
 

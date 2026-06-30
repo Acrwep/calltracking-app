@@ -185,6 +185,7 @@ class TrackerRepository(private val context: Context) {
                 isSynced = false
             )
             dao.insertWhatsAppCall(entity)
+            syncWhatsAppCallsToApi()
         }
     }
 
@@ -441,15 +442,35 @@ class TrackerRepository(private val context: Context) {
 
             for (call in unsyncedCalls) {
                 val timeStr = sdf.format(java.util.Date(call.timestamp))
+                
+                var durationInSeconds = 0
+                try {
+                    val cleanDuration = call.duration.replace(Regex("[^0-9:]"), "").trim()
+                    val parts = cleanDuration.split(":")
+                    if (parts.size == 2) {
+                        durationInSeconds = parts[0].toInt() * 60 + parts[1].toInt()
+                    } else if (parts.size == 3) {
+                        durationInSeconds = parts[0].toInt() * 3600 + parts[1].toInt() * 60 + parts[2].toInt()
+                    } else if (parts.size == 1 && parts[0].isNotEmpty()) {
+                        durationInSeconds = parts[0].toInt()
+                    }
+                    android.util.Log.d("TrackerRepository", "Parsed Duration: Original='${call.duration}', Cleaned='$cleanDuration', Seconds=$durationInSeconds")
+                } catch (e: Exception) {
+                    android.util.Log.e("TrackerRepository", "Error parsing duration: ${call.duration}", e)
+                }
+                
+                val finalContactName = if (call.contactName.isBlank()) "Unknown" else call.contactName
 
                 val request = com.example.calltracker.data.remote.AddWhatsappCallLogRequest(
                     userId = userId,
                     diraction = call.direction,
-                    contactName = call.contactName,
+                    contactName = finalContactName,
                     callType = call.sessionType,
-                    duration = call.duration,
+                    duration = durationInSeconds,
                     createdAt = timeStr
                 )
+
+                android.util.Log.d("TrackerRepository", "API Request Body: userId=${request.userId}, direction=${request.diraction}, contactName=${request.contactName}, callType=${request.callType}, duration=${request.duration}, createdAt=${request.createdAt}")
 
                 val response = api.addWhatsappCallLog(request)
                 if (response.isSuccessful) {

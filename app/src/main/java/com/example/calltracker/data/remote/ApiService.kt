@@ -57,7 +57,7 @@ interface ApiService {
         @Part("capture_time") captureTime: RequestBody
     ): Response<Void>
 
-    @POST("api/add-notifications")
+    @POST("api/add-notification")
     suspend fun addNotification(@Body request: NotificationRequest): Response<Void>
 
     @POST("api/add-whatsapp-chat-logs")
