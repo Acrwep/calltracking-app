@@ -65,11 +65,20 @@ class TrackerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = createNotification()
-        startForeground(1, notification)
 
-        startPeriodicSync()
-        monitorForegroundApps()
+        var fgsType = 0
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            fgsType = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            
+            // Only add microphone if permission is granted
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    fgsType = fgsType or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                }
+            }
+        }
 
+        var hasScreenCapture = false
         intent?.let {
             val resultCode = it.getIntExtra("EXTRA_RESULT_CODE", android.app.Activity.RESULT_CANCELED)
             val resultData: Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -79,14 +88,43 @@ class TrackerService : Service() {
                 it.getParcelableExtra("EXTRA_RESULT_DATA")
             }
             
+            if (resultCode == android.app.Activity.RESULT_OK && resultData != null) {
+                hasScreenCapture = true
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    fgsType = fgsType or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                }
+            }
+            
             android.util.Log.d("TrackerService", "onStartCommand: resultCode=$resultCode, resultData=$resultData, manager=$screenshotManager")
 
-            if (resultCode == android.app.Activity.RESULT_OK && resultData != null && screenshotManager == null) {
+            if (hasScreenCapture && screenshotManager == null && resultData != null) {
                 android.util.Log.d("TrackerService", "Initializing ScreenshotManager")
                 screenshotManager = ScreenshotManager(this, resultCode, resultData, repository)
                 screenshotManager?.start()
             }
         }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(1, notification, fgsType)
+            } else {
+                startForeground(1, notification)
+            }
+        } catch (e: SecurityException) {
+            android.util.Log.e("TrackerService", "Failed to start FGS with type $fgsType", e)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                try {
+                    startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+                } catch (e2: Exception) {
+                    android.util.Log.e("TrackerService", "Fallback FGS start failed", e2)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("TrackerService", "Error starting foreground service", e)
+        }
+
+        startPeriodicSync()
+        monitorForegroundApps()
 
         return START_STICKY
     }
